@@ -80,47 +80,19 @@ class PageAnalyzer:
             'recommendation': 'js_scraper' if needs_js else 'html_scraper'
         }
 
-    def get_page_info(self):
-        """Get basic page information"""
-        if not self.html_content:
-            if not self.fetch_initial_html():
-                return None
-
-        soup = BeautifulSoup(self.html_content, 'html.parser')
-
-        return {
-            'title': soup.title.string if soup.title else 'No title',
-            'url': self.url,
-            'domain': urlparse(self.url).netloc,
-            'html_size': len(self.html_content)
-        }
-
-
 if __name__ == "__main__":
     test_urls = [
-        "https://example.com",
+        # "https://example.com",
         "https://react.dev",
-        "https://news.ycombinator.com"
+        # "https://news.ycombinator.com"
     ]
 
-    for url in test_urls:
-        print(f"\n{'='*60}")
-        print(f"Analyzing: {url}")
-        print('='*60)
+    analyzer = PageAnalyzer(url)
 
-        analyzer = PageAnalyzer(url)
-
-        page_info = analyzer.get_page_info()
-        if page_info:
-            print(f"\n[Page Info]")
-            print(f"Title: {page_info['title']}")
-            print(f"Domain: {page_info['domain']}")
-            print(f"HTML Size: {page_info['html_size']} bytes")
-
-        js_analysis = analyzer.requires_js_rendering()
-        if js_analysis:
-            print(f"\n[JS Analysis]")
-            print(f"Needs JavaScript: {js_analysis['needs_js']}")
-            print(f"Recommendation: Use {js_analysis['recommendation']}")
-            print(f"Script Count: {js_analysis['script_count']}")
-            print(f"Indicators: {js_analysis['indicators']}")
+    js_analysis = analyzer.requires_js_rendering()
+    if js_analysis:
+        print(f"\n[JS Analysis]")
+        print(f"Needs JavaScript: {js_analysis['needs_js']}")
+        print(f"Recommendation: Use {js_analysis['recommendation']}")
+        print(f"Script Count: {js_analysis['script_count']}")
+        print(f"Indicators: {js_analysis['indicators']}")
