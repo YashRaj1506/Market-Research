@@ -81,11 +81,7 @@ class PageAnalyzer:
         }
 
 if __name__ == "__main__":
-    test_urls = [
-        # "https://example.com",
-        "https://react.dev",
-        # "https://news.ycombinator.com"
-    ]
+    url = "https://react.dev"
 
     analyzer = PageAnalyzer(url)
 
