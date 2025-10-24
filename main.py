@@ -1,71 +1,38 @@
-import redis
+from Scraper.html_scraper import HTMLScraper
+from Scraper.js_scraper import JSScraper
+from verify_content.page_analyzer import PageAnalyzer
+from Scraper.url_manager import URLManager, RedisClient
 
-class RedisClient:
-    def __init__(self, host='localhost', port=6379, db=0):
-        self.client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+class MainScraper:
+    def __init__(self):
+        self.url_manager = URLManager()
 
-    def url_addition(self, key: str, value: str):
-        """Add a URL to a Redis set"""
-        try:
-            self.client.sadd(key, value)
-            return True
-        except Exception as e:
-            print(f"[!] Error adding URL to Redis: {e}")
-            return False
-        
-    def url_deletion(self, key: str, value: str):
-        """Remove a URL from a Redis set"""
-        try:
-            self.client.srem(key, value)
-            return True
-        except Exception as e:
-            print(f"[!] Error removing URL from Redis: {e}")
-            return False
-    
-    def url_check(self, key: str, value: str) -> bool:
-        """Check if a URL exists in a Redis set"""
-        try:
-            return self.client.sismember(key, value)
-        except Exception as e:
-            print(f"[!] Error checking URL in Redis: {e}")
-            return False
-        
-    def url_retrieval(self, key: str):
-        """Retrieve a URL from a Redis set"""
-        try:
-            return self.client.spop(key)
-        except Exception as e:
-            print(f"[!] Error retrieving URLs from Redis: {e}")
-            return None
-        
-    def url_count(self, key: str) -> int:
-        """Get the count of URLs in a Redis set"""
-        try:
-            return self.client.scard(key)
-        except Exception as e:
-            print(f"[!] Error counting URLs in Redis: {e}")
-            return 0
-        
-    def bulk_urls_addition(self, key: str, values: list):
-        """Add multiple URLs to a Redis set"""
-        try:
-            self.client.sadd(key, *values)
-            return True
-        except Exception as e:
-            print(f"[!] Error adding multiple URLs to Redis: {e}")
-            return False
-        
-    def connectivity_test(self) -> bool:
-        """Test connectivity to Redis server"""
-        try:
-            return self.client.ping()
-        except Exception as e:
-            print(f"[!] Error connecting to Redis: {e}")
-            return False
-    
-    def connectivity_close(self):
-        """Close the Redis connection"""
-        try:
-            self.client.close()
-        except Exception as e:
-            print(f"[!] Error closing Redis connection: {e}")
+    def scrape_url(self, url: str):
+        analyzer = PageAnalyzer(url)
+        analysis = analyzer.requires_js_rendering()
+
+        if analysis and analysis['recommendation'] == 'js_scraper':
+            scraper = JSScraper(url)
+            scraper.fetch_page()
+            content = scraper.get_content()
+            print(content)
+            scraper.close()
+        else:
+            scraper = HTMLScraper(url)
+            scraper.fetch_html()
+            content = scraper.get_content()
+            print(content)
+
+        print(f"[+] Scraped content from {url} (length: {len(content)})")
+        return content
+
+    def close(self):
+        self.url_manager.close()
+
+if __name__ == "__main__":
+
+    main_scraper = MainScraper()
+    test_url = "https://scale.com/enterprise/agentic-solutions"
+    # test_url = "https://example.com"
+    main_scraper.scrape_url(test_url)
+    main_scraper.close()
