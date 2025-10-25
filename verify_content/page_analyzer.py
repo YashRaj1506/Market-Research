@@ -23,72 +23,91 @@ class PageAnalyzer:
 
     def requires_js_rendering(self):
         """Determine if page needs JavaScript rendering"""
-        if not self.html_content:
-            if not self.fetch_initial_html():
-                return None
+        try:
+            if not self.html_content:
+                if not self.fetch_initial_html():
+                    return None
 
-        soup = BeautifulSoup(self.html_content, 'html.parser')
+            soup = BeautifulSoup(self.html_content, 'html.parser')
 
-        js_indicators = {
-            'react': False,
-            'vue': False,
-            'angular': False,
-            'heavy_scripts': False,
-            'spa_patterns': False,
-            'minimal_content': False
-        }
+            js_indicators = {
+                'empty_spa_root': False,
+                'minimal_content': False,
+                'has_noscript_content': False,
+                'has_semantic_content': False
+            }
 
-        scripts = soup.find_all('script')
-        script_count = len(scripts)
+            # Check for empty SPA root divs
+            try:
+                root_div = soup.find('div', id=['root', 'app', '__next'])
+                if root_div:
+                    root_text = root_div.get_text(strip=True)
+                    if len(root_text) < 100:
+                        js_indicators['empty_spa_root'] = True
+            except Exception as e:
+                print(f"[!] Error checking SPA root: {e}")
 
-        for script in scripts:
-            script_text = script.get_text().lower() if script.string else ''
-            src = script.get('src', '').lower()
+            # Check for noscript tags with content
+            try:
+                noscript_tags = soup.find_all('noscript')
+                noscript_content = ''.join([tag.get_text(strip=True) for tag in noscript_tags])
+                if len(noscript_content) > 100:
+                    js_indicators['has_noscript_content'] = True
+            except Exception as e:
+                print(f"[!] Error checking noscript tags: {e}")
 
-            if 'react' in src or 'react' in script_text:
-                js_indicators['react'] = True
-            if 'vue' in src or 'vue' in script_text:
-                js_indicators['vue'] = True
-            if 'angular' in src or 'angular' in script_text:
-                js_indicators['angular'] = True
+            # Check for semantic HTML content
+            try:
+                semantic_tags = soup.find_all(['p', 'article', 'section', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+                semantic_text = ''.join([tag.get_text(strip=True) for tag in semantic_tags])
+                if len(semantic_text) > 300:
+                    js_indicators['has_semantic_content'] = True
+            except Exception as e:
+                print(f"[!] Error checking semantic content: {e}")
 
-        if script_count > 10:
-            js_indicators['heavy_scripts'] = True
+            # Check body content
+            try:
+                body = soup.find('body')
+                if body:
+                    body_text = body.get_text(strip=True)
+                    if len(body_text) < 300:
+                        js_indicators['minimal_content'] = True
+            except Exception as e:
+                print(f"[!] Error checking body content: {e}")
 
-        root_div = soup.find('div', id=['root', 'app', '__next'])
-        if root_div and len(root_div.get_text(strip=True)) < 100:
-            js_indicators['spa_patterns'] = True
+            # Decision logic: needs JS if it looks like SPA with no real content
+            needs_js = (
+                (js_indicators['empty_spa_root'] or js_indicators['minimal_content'])
+                and not js_indicators['has_semantic_content']
+                and not js_indicators['has_noscript_content']
+            )
 
-        body = soup.find('body')
-        if body:
-            text_content = body.get_text(strip=True)
-            if len(text_content) < 200 and script_count > 3:
-                js_indicators['minimal_content'] = True
-
-        needs_js = any([
-            js_indicators['react'],
-            js_indicators['vue'],
-            js_indicators['angular'],
-            js_indicators['spa_patterns'],
-            js_indicators['minimal_content']
-        ])
-
-        return {
-            'needs_js': needs_js,
-            'indicators': js_indicators,
-            'script_count': script_count,
-            'recommendation': 'js_scraper' if needs_js else 'html_scraper'
-        }
+            return {
+                'needs_js': needs_js,
+                'indicators': js_indicators,
+                'recommendation': 'js_scraper' if needs_js else 'html_scraper'
+            }
+        except Exception as e:
+            print(f"[!] Error analyzing page: {e}")
+            # Default to html_scraper if analysis fails
+            return {
+                'needs_js': False,
+                'indicators': {},
+                'recommendation': 'html_scraper'
+            }
 
 if __name__ == "__main__":
-    url = "https://react.dev"
+    url = "https://www.iea.org/reports/global-ev-outlook-2024/trends-in-electric-cars"
 
     analyzer = PageAnalyzer(url)
 
-    js_analysis = analyzer.requires_js_rendering()
-    if js_analysis:
-        print(f"\n[JS Analysis]")
-        print(f"Needs JavaScript: {js_analysis['needs_js']}")
-        print(f"Recommendation: Use {js_analysis['recommendation']}")
-        print(f"Script Count: {js_analysis['script_count']}")
-        print(f"Indicators: {js_analysis['indicators']}")
+    try:
+        js_analysis = analyzer.requires_js_rendering()
+        if js_analysis:
+            print(f"\n[JS Analysis]")
+            print(f"Needs JavaScript: {js_analysis['needs_js']}")
+            print(f"Recommendation: Use {js_analysis['recommendation']}")
+            print(f"Script Count: {js_analysis['script_count']}")
+            print(f"Indicators: {js_analysis['indicators']}")
+    except Exception as e:
+        print(f"[!] Error during analysis: {e}")
