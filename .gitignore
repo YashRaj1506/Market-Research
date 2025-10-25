@@ -108,3 +108,5 @@ temp/
 # Ignore cache or dataset directories
 data/
 cache/
+
+scraped_contents.txt

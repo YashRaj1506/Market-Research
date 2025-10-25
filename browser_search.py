@@ -2,11 +2,13 @@ import requests
 import os
 from dotenv import load_dotenv
 
+from web_query import generate_search_queries
+
 # Load environment variables from .env file
 load_dotenv()
 
 
-def brave_search(query: str, api_key: str, count: int = 10):
+def brave_search(query: str, api_key: str, count: int = 5):
     """
     Perform a Brave Search query and return the top result URLs.
 
@@ -39,9 +41,10 @@ def brave_search(query: str, api_key: str, count: int = 10):
 
 if __name__ == "__main__":
     BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
-    query = "latest AI news"
+    queries = generate_search_queries("latest trends in electric vehicles 2024")
     
-    results = brave_search(query, BRAVE_API_KEY)
-    print("Top 10 URLs:")
-    for i, url in enumerate(results, start=1):
-        print(f"{i}. {url}")
+    for query in queries:
+        results = brave_search(query, BRAVE_API_KEY)
+        print("Top 10 URLs:")
+        for i, url in enumerate(results, start=1):
+            print(f"{i}. {url}")
